@@ -256,9 +256,9 @@ class Datepicker extends React.Component {
 		this.handleClose = this.handleClose.bind(this);
 		this.handleOpen = this.handleOpen.bind(this);
 		this.getDialog = this.getDialog.bind(this);
-		this.getDatePicker = this.getDatePicker.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.handleKeyDown = this.handleKeyDown.bind(this);
+		this.renderCalendar = this.renderCalendar.bind(this);
 
 		this.state = {
 			isOpen: false,
@@ -357,19 +357,6 @@ class Datepicker extends React.Component {
 		return parsedDate;
 	}
 
-	getInlineMenu ({ labels, assistiveText }) {
-		return !this.props.disabled && this.getIsOpen()
-		? <div
-			className={classNames('slds-datepicker',
-				'slds-dropdown',
-				`slds-dropdown--${this.props.align}`,
-			this.props.className)}
-		>
-			{this.getDatePicker({ labels, assistiveText })}
-		</div>
-		: null;
-	}
-
 	handleClose () {
 		if (this.props.onClose) {
 			this.props.onClose();
@@ -386,7 +373,20 @@ class Datepicker extends React.Component {
 		}
 	}
 
-	getDialog ({ labels, assistiveText }) {
+	getInlineMenu ({ calendarRenderer }) {
+		return !this.props.disabled && this.getIsOpen()
+		? <div
+			className={classNames('slds-datepicker',
+				'slds-dropdown',
+				`slds-dropdown--${this.props.align}`,
+			this.props.className)}
+		>
+			{calendarRenderer}
+		</div>
+		: null;
+	}
+
+	getDialog ({ calendarRenderer }) {
 		return !this.props.disabled && this.getIsOpen()
 			? <Dialog
 				contentsClassName="slds-datepicker slds-dropdown"
@@ -398,51 +398,9 @@ class Datepicker extends React.Component {
 				portalMount={this.props.portalMount}
 				targetElement={this.inputRef}
 			>
-				{this.getDatePicker({ labels, assistiveText })}
+				{calendarRenderer}
 			</Dialog>
 			: null;
-	}
-
-	getDatePicker ({ labels, assistiveText }) {
-		const date = this.state.formattedValue
-			? this.parseDate(this.state.formattedValue)
-			: this.state.value;
-
-		return (<CalendarWrapper
-			// Please remove `abbrWeekDayLabels` on the next breaking change.
-			abbreviatedWeekDayLabels={this.props.abbreviatedWeekDayLabels // eslint-disable-line react/prop-types
-				|| this.props.abbrWeekDayLabels // eslint-disable-line react/prop-types
-				|| labels.abbreviatedWeekDays}
-
-			/* Remove || for assistiveText at next breaking change */
-			assistiveTextNextMonth={this.props.assistiveTextNextMonth || // eslint-disable-line react/prop-types
-				assistiveText.nextMonth}
-			assistiveTextPreviousMonth={this.props.assistiveTextPreviousMonth || // eslint-disable-line react/prop-types
-				assistiveText.previousMonth}
-
-			id={this.getId()}
-			isIsoWeekday={this.props.isIsoWeekday}
-			monthLabels={this.props.monthLabels // eslint-disable-line react/prop-types
-				|| labels.months}
-			onCalendarFocus={this.props.onCalendarFocus}
-			dateDisabled={this.props.dateDisabled}
-			onRequestClose={this.handleRequestClose}
-			onSelectDate={this.handleCalendarChange}
-			ref={() => {
-				// since it's inline, there is no callback except on render
-				if (this.props.isInline) {
-					this.handleOpen();
-				}
-			}}
-			relativeYearFrom={this.props.relativeYearFrom}
-			relativeYearTo={this.props.relativeYearTo}
-			selectedDate={date || new Date()}
-			selectedDateRef={(component) => { this.selectedDateCell = component; }}
-			todayLabel={this.props.todayLabel // eslint-disable-line react/prop-types
-				|| labels.today}
-			weekDayLabels={this.props.weekDayLabels // eslint-disable-line react/prop-types
-				|| labels.weekDays}
-		/>);
 	}
 
 	handleInputChange (event) {
@@ -477,6 +435,50 @@ class Datepicker extends React.Component {
 			this.props.onKeyDown(event);
 		}
 		/* eslint-enable react/prop-types */
+	}
+
+	renderCalendar ({ labels, assistiveText }) {
+		const date = this.state.formattedValue
+			? this.parseDate(this.state.formattedValue)
+			: this.state.value;
+
+		return (
+			<CalendarWrapper
+				// Please remove `abbrWeekDayLabels` on the next breaking change.
+				abbreviatedWeekDayLabels={this.props.abbreviatedWeekDayLabels // eslint-disable-line react/prop-types
+					|| this.props.abbrWeekDayLabels // eslint-disable-line react/prop-types
+					|| labels.abbreviatedWeekDays}
+
+				/* Remove || for assistiveText at next breaking change */
+				assistiveTextNextMonth={this.props.assistiveTextNextMonth || // eslint-disable-line react/prop-types
+					assistiveText.nextMonth}
+				assistiveTextPreviousMonth={this.props.assistiveTextPreviousMonth || // eslint-disable-line react/prop-types
+					assistiveText.previousMonth}
+
+				id={this.getId()}
+				isIsoWeekday={this.props.isIsoWeekday}
+				monthLabels={this.props.monthLabels // eslint-disable-line react/prop-types
+					|| labels.months}
+				onCalendarFocus={this.props.onCalendarFocus}
+				dateDisabled={this.props.dateDisabled}
+				onRequestClose={this.handleRequestClose}
+				onSelectDate={this.handleCalendarChange}
+				ref={() => {
+					// since it's inline, there is no callback except on render
+					if (this.props.isInline) {
+						this.handleOpen();
+					}
+				}}
+				relativeYearFrom={this.props.relativeYearFrom}
+				relativeYearTo={this.props.relativeYearTo}
+				selectedDate={date || new Date()}
+				selectedDateRef={(component) => { this.selectedDateCell = component; }}
+				todayLabel={this.props.todayLabel // eslint-disable-line react/prop-types
+					|| labels.today}
+				weekDayLabels={this.props.weekDayLabels // eslint-disable-line react/prop-types
+					|| labels.weekDays}
+			/>
+		);
 	}
 
 	render () {
@@ -538,8 +540,8 @@ class Datepicker extends React.Component {
 			>
 				{clonedInput}
 				{this.props.isInline
-					? this.getInlineMenu({ labels, assistiveText })
-					: this.getDialog({ labels, assistiveText })}
+					? this.getInlineMenu({ calendarRenderer: this.renderCalendar({ labels, assistiveText }) })
+					: this.getDialog({ calendarRenderer: this.renderCalendar({ labels, assistiveText }) })}
 			</div>
 		);
 	}
