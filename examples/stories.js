@@ -11,6 +11,7 @@ export Filter from './filter/stories';
 export GlobalNavigationBar from './global-navigation-bar/stories';
 export DataTable from './data-table/stories';
 export DatePicker from './date-picker/stories';
+export DayPicker from './day-picker/stories';
 export Dropdown from './menu-dropdown/stories';
 export Input from './forms/input/stories';
 export InlineInput from './forms/input/inline/stories';
