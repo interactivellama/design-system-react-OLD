@@ -66,15 +66,25 @@ const propTypes = {
 	/**
 	 *
 	 */
+	daysAndWeeks: PropTypes.arrayOf(PropTypes.object),
+	// daysInMonth: { day: 1 }
+	// daysAndWeeks: { day: SUN, week: 1 }
+	/**
+	 *
+	 */
+	daysInMonth: PropTypes.arrayOf(PropTypes.object),
+	/* PropTypes.shape({
+		week: PropTypes.number,
+		day: PropTypes.string
+	}), */
+	/**
+	 *
+	 */
 	dayDisabled: PropTypes.func,
 	/**
 	 * Date formatting function. _Tested with snapshot testing._
 	 */
 	formatter: PropTypes.func,
-	/**
-	 * Value of input that gets passed to `parser` prop. Set the `value` prop if using a `Date` object. Use an external library such as [MomentJS](https://github.com/moment/moment/) if additional date formatting or internationalization is needed. _Not tested._
-	 */
-	formattedValue: PropTypes.string,
 	/* Prevents the dropdown from changing position based on the viewport/window. If set to true your dropdowns can extend outside the viewport _and_ overflow outside of a scrolling parent. If this happens, you might want to consider making the dropdowns contents scrollable to fit the menu on the screen. _Not tested._
 	*/
 	hasStaticAlignment: PropTypes.bool,
@@ -154,28 +164,37 @@ const propTypes = {
 	 * _Tested with Mocha framework._
 	 */
 	portalMount: PropTypes.func,
+	/*
+	 * Some languages have reversed word order for "First Monday".
+	 */
+	reverseOrdinalDayNames: PropTypes.bool,
 	/**
 	 * CSS classes to be added to tag with `slds-datepicker-trigger`. This is typically a wrapping `div` around the input. _Tested with snapshot testing._
 	 */
 	triggerClassName: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.string]),
-	/**
-	 * Sets date with a `Date` ECMAScript object. _Tested with snapshot testing._
-	 */
-	value: PropTypes.instanceOf(Date)
+
+	variant: PropTypes.oneOf(['daysInMonth'])
 };
 
 const defaultProps = {
 	align: 'left',
-	assistiveText: {
-		nextMonth: 'Next month',
-		openCalendar: 'Open Calendar',
-		previousMonth: 'Previous month'
+	assistiveText: {},
+	formatter ({ days, labels, variant }) {
+		let inputValue;
+		if (variant === 'daysInMonth') {
+			const items = days.map((item) => `${item.day}`);
+			inputValue = items.length ? items.sort((a, b) => a - b).join(', ') : '';
+		} else {
+			const items = days.map((item) => `${item.week}${item.day}`);
+			inputValue = items.length ? items.join(', ') : '';
+		}
+		return inputValue;
 	},
-	formatter (date) {
-		return date ? `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}` : '';
-	},
+	initialFocusDayInMonth: 1,
 	labels: {
-		abbreviatedWeekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+		abbreviatedWeekDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+		closeAndSave: 'Done',
+		lastDay: 'Last Day',
 		months: [
 			'January',
 			'February',
@@ -190,8 +209,11 @@ const defaultProps = {
 			'November',
 			'December'
 		],
-		placeholder: 'Pick a Date',
-		today: 'Today',
+		abbreviatedOrdinalWeek: ['1st', '2nd', '3rd', '4th'],
+		// Last is supported by iCal RRULE, but is not included here
+		ordinalWeek: ['First', 'Second', 'Third', 'Fourth'],
+		placeholder: '1, 2, 3...Last Day',
+		selectDates: 'Select one or more days of the month:',
 		weekDays: [
 			'Sunday',
 			'Monday',
@@ -202,12 +224,12 @@ const defaultProps = {
 			'Saturday'
 		]
 	},
-	parser (str) {
-		return new Date(str);
-	},
-	relativeYearFrom: -5,
-	relativeYearTo: 5,
-	dateDisabled: () => false
+	parser: ({ inputValue, labels }) =>
+		inputValue.replace(labels.lastDay.toLowerCase(), '-1')
+		.split(',')
+		.map((day) => ({ day })),
+	selectedDaysAndWeeks: [],
+	selectedDaysInMonth: []
 };
 
 /**
@@ -220,10 +242,6 @@ const defaultProps = {
 class DayPicker extends React.Component {
 	constructor (props) {
 		super(props);
-		// Please remove `strValue` on the next breaking change.
-		const formattedValue = props.formattedValue || props.strValue; // eslint-disable-line react/prop-types
-		const dateString = props.formatter(props.value);
-		const initDate = props.value ? dateString : formattedValue;
 
 		this.getId = this.getId.bind(this);
 		this.getIsOpen = this.getIsOpen.bind(this);
@@ -231,39 +249,20 @@ class DayPicker extends React.Component {
 		this.handleClickOutside = this.handleClickOutside.bind(this);
 		this.handleRequestClose = this.handleRequestClose.bind(this);
 		this.openDialog = this.openDialog.bind(this);
-		this.parseDate = this.parseDate.bind(this);
 		this.getInlineMenu = this.getInlineMenu.bind(this);
 		this.handleClose = this.handleClose.bind(this);
 		this.handleOpen = this.handleOpen.bind(this);
 		this.getDialog = this.getDialog.bind(this);
 		this.handleInputChange = this.handleInputChange.bind(this);
 		this.handleKeyDown = this.handleKeyDown.bind(this);
-		this.renderCalendar = this.renderCalendar.bind(this);
 
 		this.state = {
-			isOpen: false,
-			value: props.value,
-			formattedValue: initDate || '',
-			inputValue: initDate || ''
+			isOpen: false
 		};
 	}
 
 	componentWillMount () {
 		this.generatedId = shortid.generate();
-	}
-
-	componentWillReceiveProps (nextProps) {
-		if (nextProps.value && this.props.value) {
-			const currentDate = this.props.value.getTime();
-			const nextDate = nextProps.value.getTime();
-
-			if (currentDate !== nextDate) {
-				this.setState({
-					value: nextProps.value,
-					formattedValue: this.props.formatter(nextProps.value)
-				});
-			}
-		}
 	}
 
 	getId () {
@@ -274,29 +273,13 @@ class DayPicker extends React.Component {
 		return !!(isBoolean(this.props.isOpen) ? this.props.isOpen : this.state.isOpen);
 	}
 
-	handleCalendarChange (event, { date }) {
-		this.setState({
-			value: date,
-			formattedValue: this.props.formatter(date),
-			inputValue: this.props.formatter(date)
-		});
-
-		this.handleRequestClose();
-
+	handleCalendarChange (event, { day, selected }) {
 		if (this.props.onChange) {
 			this.props.onChange(event, {
-				date,
-				formattedDate: this.props.formatter(date),
-				timezoneOffset: date.getTimezoneOffset()
+				day,
+				selected
 			});
 		}
-
-		// Please remove `onDateChange` on the next breaking change.
-		/* eslint-disable react/prop-types */
-		if (this.props.onDateChange) {
-			this.props.onDateChange(date, this.props.formatter(date));
-		}
-		/* eslint-enable react/prop-types */
 	}
 
 	handleClickOutside () {
@@ -325,15 +308,6 @@ class DayPicker extends React.Component {
 		}
 	}
 
-	parseDate (formattedValue) {
-		let parsedDate = this.props.parser(formattedValue);
-		if (Object.prototype.toString.call(parsedDate) !== '[object Date]'
-			|| isNaN(parsedDate.getTime())) {
-			parsedDate = new Date();
-		}
-		return parsedDate;
-	}
-
 	handleClose () {
 		if (this.props.onClose) {
 			this.props.onClose();
@@ -345,8 +319,8 @@ class DayPicker extends React.Component {
 			this.props.onOpen();
 		}
 
-		if (this.selectedDateCell) {
-			this.selectedDateCell.focus();
+		if (this.selectedDayCell) {
+			this.selectedDayCell.focus();
 		}
 	}
 
@@ -381,18 +355,14 @@ class DayPicker extends React.Component {
 	}
 
 	handleInputChange (event) {
-		this.setState({
-			formattedValue: event.target.value,
-			inputValue: event.target.value
-		});
-
-		const date = this.props.parser(event.target.value);
+		const daysInMonth = this.props.parser({
+			inputValue: event.target.value,
+			labels: this.props.labels
+		}) || null;
 
 		if (this.props.onChange) {
 			this.props.onChange(event, {
-				date,
-				formattedDate: event.target.value,
-				timezoneOffset: date.getTimezoneOffset()
+				daysInMonth
 			});
 		}
 	}
@@ -405,55 +375,29 @@ class DayPicker extends React.Component {
 			EventUtil.trapEvent(event);
 			this.setState({ isOpen: true });
 		}
-
-		// Please remove `onKeyDown` on the next breaking change.
-		/* eslint-disable react/prop-types */
-		if (this.props.onKeyDown) {
-			this.props.onKeyDown(event);
-		}
-		/* eslint-enable react/prop-types */
 	}
 
-	renderCalendar ({ labels, assistiveText }) {
-		const date = this.state.formattedValue
-			? this.parseDate(this.state.formattedValue)
-			: this.state.value;
+	renderCalendar ({ labels }) {
 
 		return (
 			<CalendarWrapper
-				// Please remove `abbrWeekDayLabels` on the next breaking change.
-				abbreviatedWeekDayLabels={this.props.abbreviatedWeekDayLabels // eslint-disable-line react/prop-types
-					|| this.props.abbrWeekDayLabels // eslint-disable-line react/prop-types
-					|| labels.abbreviatedWeekDays}
-
-				/* Remove || for assistiveText at next breaking change */
-				assistiveTextNextMonth={this.props.assistiveTextNextMonth || // eslint-disable-line react/prop-types
-					assistiveText.nextMonth}
-				assistiveTextPreviousMonth={this.props.assistiveTextPreviousMonth || // eslint-disable-line react/prop-types
-					assistiveText.previousMonth}
-
+				labels={labels}
 				id={this.getId()}
+				initialFocusDayInMonth={this.props.initialFocusDayInMonth}
 				isIsoWeekday={this.props.isIsoWeekday}
-				monthLabels={this.props.monthLabels // eslint-disable-line react/prop-types
-					|| labels.months}
 				onCalendarFocus={this.props.onCalendarFocus}
-				dateDisabled={this.props.dateDisabled}
 				onRequestClose={this.handleRequestClose}
-				onSelectDate={this.handleCalendarChange}
+				onSelectDay={this.handleCalendarChange}
 				ref={() => {
 					// since it's inline, there is no callback except on render
 					if (this.props.isInline) {
 						this.handleOpen();
 					}
 				}}
-				relativeYearFrom={this.props.relativeYearFrom}
-				relativeYearTo={this.props.relativeYearTo}
-				selectedDate={date || new Date()}
-				selectedDateRef={(component) => { this.selectedDateCell = component; }}
-				todayLabel={this.props.todayLabel // eslint-disable-line react/prop-types
-					|| labels.today}
-				weekDayLabels={this.props.weekDayLabels // eslint-disable-line react/prop-types
-					|| labels.weekDays}
+				selectedDaysInMonth={this.props.selectedDaysInMonth}
+				selectedDaysAndWeeks={this.props.selectedDaysAndWeeks}
+				selectedDayRef={(component) => { this.selectedDayCell = component; }}
+				variant={this.props.variant}
 			/>
 		);
 	}
@@ -467,8 +411,7 @@ class DayPicker extends React.Component {
 			disabled: (this.props.children && !!this.props.children.props.disabled) || this.props.disabled,
 			iconRight: (this.props.children && !!this.props.children.props.iconRight) || (<InputIcon
 				// Remove || for assistiveText at next breaking change
-				assistiveText={this.props.assistiveTextOpenCalendar || // eslint-disable-line react/prop-types
-					assistiveText.openCalendar}
+				assistiveText={assistiveText.openCalendar}
 				aria-haspopup
 				aria-expanded={this.getIsOpen()}
 				category="utility"
@@ -477,9 +420,7 @@ class DayPicker extends React.Component {
 			/>),
 			id: this.getId(),
 			inputRef: (component) => { this.inputRef = component; },
-			label: (this.props.children && this.props.children.props.label)
-				|| this.props.label // eslint-disable-line react/prop-types
-				|| labels.label,
+			label: labels.label,
 			onBlur: (this.props.children && this.props.children.props.onBlur) || this.props.onBlur, // eslint-disable-line react/prop-types
 			onChange: this.handleInputChange,
 			onClick: () => {
@@ -491,10 +432,15 @@ class DayPicker extends React.Component {
 			onFocus: (this.props.children && this.props.children.props.onFocus) || this.props.onFocus, // eslint-disable-line react/prop-types
 			onKeyDown: (this.props.children && this.props.children.props.onKeyDown) || this.handleKeyDown,
 			placeholder: (this.props.children && this.props.children.props.placeholder)
-				|| this.props.placeholder // eslint-disable-line react/prop-types
 				|| labels.placeholder,
 			required: (this.props.children && this.props.children.props.required) || this.props.required, // eslint-disable-line react/prop-types
-			value: (this.props.children && this.props.children.props.value) || this.state.inputValue
+			value: (this.props.children && this.props.children.props.value)
+				|| this.props.formatter({
+					days: this.props.variant === 'daysInMonth' ? this.props.selectedDaysInMonth : this.props.selectedDaysAndWeeks,
+					labels,
+					variant: this.props.variant }
+
+				)
 		};
 
 		const clonedInput = this.props.children ? React.cloneElement(this.props.children, {
@@ -517,8 +463,8 @@ class DayPicker extends React.Component {
 			>
 				{clonedInput}
 				{this.props.isInline
-					? this.getInlineMenu({ calendarRenderer: this.renderCalendar({ labels, assistiveText }) })
-					: this.getDialog({ calendarRenderer: this.renderCalendar({ labels, assistiveText }) })}
+					? this.getInlineMenu({ calendarRenderer: this.renderCalendar({ labels }) })
+					: this.getDialog({ calendarRenderer: this.renderCalendar({ labels }) })}
 			</div>
 		);
 	}
