@@ -5,6 +5,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import MonthDayCalendar from './month-day-calendar';
+import Button from '../../../components/button';
 
 import EventUtil from '../../../utilities/event';
 import KEYS from '../../../utilities/key-code';
@@ -82,12 +83,13 @@ class DaypickerCalendarWrapper extends React.Component {
 		isCalendarFocused: true
 	};
 
-	handleRequestClose = () => {
+	handleCalendarCancel = () => {
 		if (this.props.onRequestClose) {
 			this.props.onRequestClose();
 		}
 	};
 
+	// done button
 	handleLastFocusableNodeKeyDown = (event) => {
 		if (!event.shiftKey && event.keyCode === KEYS.TAB) {
 			EventUtil.trapEvent(event);
@@ -95,6 +97,7 @@ class DaypickerCalendarWrapper extends React.Component {
 		}
 	};
 
+	// cancel button
 	handleFirstFocusableNodeKeyDown = (event) => {
 		if (event.shiftKey && event.keyCode === KEYS.TAB) {
 			EventUtil.trapEvent(event);
@@ -103,20 +106,10 @@ class DaypickerCalendarWrapper extends React.Component {
 	};
 
 	handleCalendarBlur = (event, { direction }) => {
-		console.log('blur calendar');
-		// if (direction === 'next' && this.previousMonthRef) {
-		// 	this.setState({ isCalendarFocused: false });
-		// 	if (this.props.onCalendarFocus) {
-		// 		this.props.onCalendarFocus(event, { direction, isCalendarFocused: false, ref: this.previousMonthRef });
-		// 	}
-		// 	this.previousMonthRef.focus();
-		// } else if (direction === 'previous' && this.todayRef) {
-		// 	this.setState({ isCalendarFocused: false });
-		// 	if (this.props.onCalendarFocus) {
-		// 		this.props.onCalendarFocus(event, { direction, isCalendarFocused: false, ref: this.todayRef });
-		// 	}
-		// 	this.todayRef.focus();
-		// }
+		if (direction === 'previous' && this.closeAndSaveRef) {
+			this.setState({ isCalendarFocused: false });
+			this.closeAndSaveRef.focus();
+		}
 	};
 
 	handleRequestInternalFocusDay = (event, data) => {
@@ -142,11 +135,16 @@ class DaypickerCalendarWrapper extends React.Component {
 	render () {
 		return (
 			<div // eslint-disable-line jsx-a11y/no-static-element-interactions
-				className={classNames(this.props.className)}
+				className={classNames('specific-date-picker__calendar-wrapper', this.props.className)}
 				aria-hidden="false"
 				data-selection="single"
 				onKeyDown={this.handleKeyDown}
 			>
+				<div className="specific-date-picker__instructions">
+					<h2 className="slds-text-body--regular">{this.props.variant === 'daysInMonth'
+						? this.props.labels.selectDaysInMonth
+						: null}</h2>
+				</div>
 				{this.props.variant === 'daysInMonth'
 				? <MonthDayCalendar
 					id={this.props.id}
@@ -154,10 +152,10 @@ class DaypickerCalendarWrapper extends React.Component {
 					labels={this.props.labels}
 					initialFocusDayInMonth={this.props.initialFocusDayInMonth}
 					onCalendarBlur={this.handleCalendarBlur}
-					onRequestClose={this.handleRequestClose}
 					onRequestInternalFocusDay={this.handleRequestInternalFocusDay}
 					onSelectDay={this.props.onSelectDay}
 					selectedDaysInMonth={this.props.selectedDaysInMonth}
+					selectedDaysInMonthFromCalendar={this.props.selectedDaysInMonthFromCalendar}
 					selectedDaysAndWeeks={this.props.selectedDaysAndWeeks}
 					selectedDayRef={this.props.selectedDayRef}
 					todayRef={(component) => {
@@ -166,9 +164,32 @@ class DaypickerCalendarWrapper extends React.Component {
 					onLastFocusableNodeKeyDown={this.handleLastFocusableNodeKeyDown}
 				/>
 				: null}
+
+				<div className="specific-date-picker__done-button">
+					<Button
+						buttonRef={(component) => {
+							this.cancelRef = component;
+						}}
+						label={this.props.labels.cancel}
+						onClick={this.handleCalendarCancel}
+						onKeyDown={this.handleFirstFocusableNodeKeyDown}
+						variant="neutral"
+					/>
+					<Button
+						buttonRef={(component) => {
+							this.closeAndSaveRef = component;
+						}}
+						label={this.props.labels.closeAndSave}
+						onClick={this.props.onCalendarSubmit}
+						onKeyDown={this.handleLastFocusableNodeKeyDown}
+						variant="neutral"
+					/>
+				</div>
 			</div>
 		);
 	}
 }
+
+// 					onRequestClose={this.handleRequestClose}
 
 export default DaypickerCalendarWrapper;

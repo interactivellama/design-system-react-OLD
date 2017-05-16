@@ -1,6 +1,9 @@
 /* eslint-disable no-console, react/prop-types */
 import React from 'react';
 import DayPicker from '~/components/day-picker';
+import Pill from '~/components/day-picker/private/pill';
+import InnerInput from '~/components/forms/input/private/inner-input';
+import InputIcon from '~/components/icon/input-icon';
 
 const Example = React.createClass({
 	displayName: 'DaypickerExample',
@@ -11,38 +14,31 @@ const Example = React.createClass({
 		};
 	},
 
-	handleOnChange (event, data) {
-		console.log(data);
-		// const newDaysInMonth = data.selected
-		// 	? this.state.selectedDaysInMonth.filter((item) => item.day !== data.day)
-		// 	: this.state.selectedDaysInMonth.concat(data);
+	handleCalendarSubmit (event, { selectedDaysInMonth }) {
+		this.setState({ selectedDaysInMonth: selectedDaysInMonth });
+	},
 
-//		this.setState({ selectedDaysInMonth: newDaysInMonth });
-
-		if (this.props.action) {
-			const dataAsArray = Object.keys(data).map((key) => data[key]);
-			this.props.action('onChange')(event, data, ...dataAsArray);
-		} else if (console) {
-			console.log('onChange', event, data);
+	handleInputSubmit (event, { selectedDayInMonth }) {
+		console.log(selectedDayInMonth);
+		// de-duplicate
+		if (this.state.selectedDaysInMonth.every((item) =>
+				item.day !== selectedDayInMonth.day)) {
+			this.setState({ selectedDaysInMonth:
+				this.state.selectedDaysInMonth.concat(selectedDayInMonth) });
 		}
 	},
 
 	render () {
 		return (
-			<DayPicker
-				selectedDaysInMonth={this.state.selectedDaysInMonth}
-				initialFocusDayInMonth={new Date().getDate()}
-				variant="daysInMonth"
-				onChange={this.handleOnChange}
-				onCalendarFocus={(event, data) => {
-					if (this.props.action) {
-						const dataAsArray = Object.keys(data).map((key) => data[key]);
-						this.props.action('onCalendarFocus')(event, data, ...dataAsArray);
-					} else if (console) {
-						console.log('onCalendarFocus', event, data);
-					}
-				}}
-			/>
+			<div>
+				<DayPicker
+					selectedDaysInMonth={this.state.selectedDaysInMonth}
+					initialFocusDayInMonth={new Date().getDate()}
+					variant="daysInMonth"
+					onInputSubmit={this.handleInputSubmit}
+					onCalendarSubmit={this.handleCalendarSubmit}
+				/>
+			</div>
 		);
 	}
 });

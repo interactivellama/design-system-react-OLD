@@ -4,7 +4,7 @@
 
 import React, { PropTypes } from 'react';
 
-import EventUtil from '../../../utilities/event';
+import mapKeyEventCallbacks from '../../../utilities/key-callbacks';
 import KEYS from '../../../utilities/key-code';
 
 // ### classNames
@@ -18,33 +18,24 @@ const handleClick = (event, { day, onSelectDay, selected }) => {
 };
 
 const handleKeyDown = (event, {
-	day,
 	events,
+	day,
 	selected
 }) => {
-	const keyDownCallbacks = {
-		[KEYS.SPACE]: () => { events.onSelectDay(event, { day, selected }); },
-		[KEYS.ENTER]: () => { events.onSelectDay(event, { day, selected }); },
-		[KEYS.TAB]: () => { events.onCalendarBlur(event, { direction: 'next' }); },
-		[KEYS.LEFT]: () => { events.onKeyboardNavigateToPreviousDay(event, { day }); },
-		[KEYS.RIGHT]: () => { events.onKeyboardNavigateToNextDay(event, { day }); },
-		[KEYS.UP]: () => { events.onKeyboardNavigateToPreviousWeek(event, { day }); },
-		[KEYS.DOWN]: () => { events.onKeyboardNavigateToNextWeek(event, { day }); }
-	};
-
-	const shiftKeyDownCallbacks = {
-		[KEYS.TAB]: () => { events.onCalendarBlur(event, { direction: 'previous' }); }
-	};
-
-	if (event.keyCode) {
-		if (event.shiftKey && keyDownCallbacks[event.keyCode]) {
-			EventUtil.trapEvent(event);
-			shiftKeyDownCallbacks[event.keyCode]();
-		} else if (keyDownCallbacks[event.keyCode]) {
-			EventUtil.trapEvent(event);
-			keyDownCallbacks[event.keyCode]();
+	// Helper function that takes an object literal of callbacks that are triggered with a key event
+	mapKeyEventCallbacks(event, {
+		callbacks: {
+			[KEYS.SPACE]: { callback: events.onSelectDay, data: { day, selected } },
+			[KEYS.ENTER]: { callback: events.onSelectDay, data: { day, selected } },
+			[KEYS.LEFT]: { callback: events.onKeyboardNavigateToPreviousDay, data: { day } },
+			[KEYS.RIGHT]: { callback: events.onKeyboardNavigateToNextDay, data: { day } },
+			[KEYS.UP]: { callback: events.onKeyboardNavigateToPreviousWeek, data: { day } },
+			[KEYS.DOWN]: { callback: events.onKeyboardNavigateToNextWeek, data: { day } }
+		},
+		shiftCallbacks: {
+			[KEYS.TAB]: { callback: events.onCalendarBlur, data: { direction: 'previous' } }
 		}
-	}
+	});
 };
 
 const DaypickerCalendarMonthDay = (props) => {
@@ -52,8 +43,10 @@ const DaypickerCalendarMonthDay = (props) => {
 		<td
 			aria-selected={props.selected}
 			className={classNames({
-				'slds-is-selected': props.selected
-			})}
+				'slds-is-selected': props.selected,
+				'slds-daypicker--last-day': props.day === -1
+			}) || null}
+			colSpan={props.day === -1 ? '2' : '1'}
 			onClick={(event) => {
 				handleClick(event, {
 					day: props.day,
@@ -84,7 +77,13 @@ const DaypickerCalendarMonthDay = (props) => {
 			role="gridcell"
 			tabIndex={props.calendarHasFocus ? -1 : 0}
 		>
-			<span className="slds-day">
+			<span
+				className={classNames(
+					'slds-day', {
+						'slds-daypicker--last-day': props.day === -1
+					}
+				)}
+			>
 				{props.day === -1 ? props.labels.lastDay : props.day}
 			</span>
 		</td>
@@ -117,7 +116,7 @@ DaypickerCalendarMonthDay.propTypes = {
 		onKeyboardNavigateToNextWeek: PropTypes.func.isRequired,
 		onKeyboardNavigateToPreviousDay: PropTypes.func.isRequired,
 		onKeyboardNavigateToPreviousWeek: PropTypes.func.isRequired,
-		onRequestClose: PropTypes.func.isRequired,
+		onRequestClose: PropTypes.func,
 		onSelectDay: PropTypes.func.isRequired
 	}),
 	/**

@@ -6,8 +6,9 @@ import PropTypes from 'prop-types';
 
 import Dialog from '../utilities/dialog';
 import CalendarWrapper from './private/calendar-wrapper';
+import InnerInput from '../../components/forms/input/private/inner-input';
 import InputIcon from '../icon/input-icon';
-import Input from '../forms/input';
+import Pill from '../../components/day-picker/private/pill';
 
 import assign from 'lodash.assign';
 
@@ -29,6 +30,7 @@ import shortid from 'shortid';
 
 import EventUtil from '../../utilities/event';
 import KEYS from '../../utilities/key-code';
+import mapKeyEventCallbacks from '../../utilities/key-callbacks';
 
 import { DAY_PICKER } from '../../utilities/constants';
 
@@ -129,6 +131,7 @@ const propTypes = {
 	/**
 	 * Triggered when the date changes. `onChange` can be used for form validation if needed. It receives an event and a data object in the shape: `{date: [Date object], formattedDate: [string], timezoneOffset: [number]}`. `data.date` is Coordinated Universal Time (UTC), but the days of the calendar are in local time of the user. The `timezoneOffset` is the difference, in minutes, between UTC and the local time. Please note that this means that the offset is positive if the local timezone is behind UTC and negative if it is ahead. `timezoneOffset` is in minutes, for hours divide by `60`. _Tested with Mocha framework._
 	 */
+	onCalendarChange: PropTypes.func,
 	onChange: PropTypes.func,
 	/**
 	 * Triggered when the calendar is closed. _Tested with Mocha framework._
@@ -146,6 +149,7 @@ const propTypes = {
 	 * Function called when the calendar dialog would like show. This will turn the calendar dialog into into a controlled component. Please use with `isOpen`. _Tested with Mocha framework._
 	 */
 	onRequestOpen: PropTypes.func,
+	onRequestRemoveDay: PropTypes.func,
 	/**
 	 * Absolutely positioned DOM nodes, such as a datepicker dialog, may need their own React DOM tree root. They may need their alignment "flipped" if extended beyond the window or outside the bounds of an overflow-hidden scrolling modal. This library's portal mounts are added as a child node of `body`. This prop will be triggered instead of the default `ReactDOM.mount()` when this dialog is mounted. This prop is useful for testing and simliar to a "callback ref." Two arguments,`reactElement` and `domContainerNode` are passed in. Consider the following code that bypasses the internal mount and uses an Enzyme wrapper to mount the React root tree to the DOM.
 	 *
@@ -193,6 +197,7 @@ const defaultProps = {
 	initialFocusDayInMonth: 1,
 	labels: {
 		abbreviatedWeekDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+		cancel: 'cancel',
 		closeAndSave: 'Done',
 		lastDay: 'Last Day',
 		months: [
@@ -212,8 +217,8 @@ const defaultProps = {
 		abbreviatedOrdinalWeek: ['1st', '2nd', '3rd', '4th'],
 		// Last is supported by iCal RRULE, but is not included here
 		ordinalWeek: ['First', 'Second', 'Third', 'Fourth'],
-		placeholder: '1, 2, 3...Last Day',
-		selectDates: 'Select one or more days of the month:',
+		placeholder: 'Pick day(s)',
+		selectDaysInMonth: 'Select day(s) of the month:',
 		weekDays: [
 			'Sunday',
 			'Monday',
@@ -225,9 +230,7 @@ const defaultProps = {
 		]
 	},
 	parser: ({ inputValue, labels }) =>
-		inputValue.replace(labels.lastDay.toLowerCase(), '-1')
-		.split(',')
-		.map((day) => ({ day })),
+		inputValue.replace(labels.lastDay.toLowerCase(), '-1'),
 	selectedDaysAndWeeks: [],
 	selectedDaysInMonth: []
 };
@@ -245,19 +248,20 @@ class DayPicker extends React.Component {
 
 		this.getId = this.getId.bind(this);
 		this.getIsOpen = this.getIsOpen.bind(this);
-		this.handleCalendarChange = this.handleCalendarChange.bind(this);
 		this.handleClickOutside = this.handleClickOutside.bind(this);
+		this.handleKeyDown = this.handleKeyDown.bind(this);
+		this.handleInputSubmit = this.handleInputSubmit.bind(this);
+		this.handleKeyDownDown = this.handleKeyDownDown.bind(this);
 		this.handleRequestClose = this.handleRequestClose.bind(this);
 		this.openDialog = this.openDialog.bind(this);
 		this.getInlineMenu = this.getInlineMenu.bind(this);
 		this.handleClose = this.handleClose.bind(this);
 		this.handleOpen = this.handleOpen.bind(this);
 		this.getDialog = this.getDialog.bind(this);
-		this.handleInputChange = this.handleInputChange.bind(this);
-		this.handleKeyDown = this.handleKeyDown.bind(this);
 
 		this.state = {
-			isOpen: false
+			isOpen: false,
+			selectedDaysInMonthFromCalendar: []
 		};
 	}
 
@@ -271,15 +275,6 @@ class DayPicker extends React.Component {
 	
 	getIsOpen () {
 		return !!(isBoolean(this.props.isOpen) ? this.props.isOpen : this.state.isOpen);
-	}
-
-	handleCalendarChange (event, { day, selected }) {
-		if (this.props.onChange) {
-			this.props.onChange(event, {
-				day,
-				selected
-			});
-		}
 	}
 
 	handleClickOutside () {
@@ -304,9 +299,33 @@ class DayPicker extends React.Component {
 		if (this.props.onRequestOpen) {
 			this.props.onRequestOpen();
 		} else {
-			this.setState({ isOpen: true });
+			this.setState({
+				isOpen: true,
+				selectedDaysInMonthFromCalendar: this.props.selectedDaysInMonth
+			});
 		}
 	}
+
+	handleSelectDay = (event, data) => {
+		const newDaysInMonth = data.selected
+			? this.state.selectedDaysInMonthFromCalendar.filter((item) => item.day !== data.day)
+			: this.state.selectedDaysInMonthFromCalendar.concat(data);
+		this.setState({ selectedDaysInMonthFromCalendar: newDaysInMonth });
+	};
+
+	handleCalendarSubmit = () => {
+		this.handleRequestClose();
+
+		const selectedDaysInMonth = this.state.selectedDaysInMonthFromCalendar;
+		if (this.props.onRequestClose) {
+			this.props.onRequestClose();
+		}
+		if (this.props.onCalendarSubmit) {
+			this.props.onCalendarSubmit(null, {
+				selectedDaysInMonth
+			});
+		}
+	};
 
 	handleClose () {
 		if (this.props.onClose) {
@@ -354,31 +373,40 @@ class DayPicker extends React.Component {
 			: null;
 	}
 
-	handleInputChange (event) {
-		const daysInMonth = this.props.parser({
-			inputValue: event.target.value,
-			labels: this.props.labels
-		}) || null;
+	handleKeyDown (event, { events }) {
+		// Helper function that takes an object literal of callbacks that are triggered with a key event
+		mapKeyEventCallbacks(event, {
+			callbacks: {
+				[KEYS.ENTER]: { callback: this.handleInputSubmit },
+				[KEYS.DOWN]: { callback: this.handleKeyDownDown }
+			}
+		});
+	}
 
-		if (this.props.onChange) {
-			this.props.onChange(event, {
-				daysInMonth
-			});
+	handleKeyDownDown (event) {
+		// Don't open if user is selecting text
+		if (!event.shiftKey) {
+			this.openDialog();
 		}
 	}
 
-	handleKeyDown (event) {
-		// Don't open if user is selecting text
-		if (event.keyCode
-				&& !event.shiftKey
-				&& (event.keyCode === KEYS.DOWN || event.keyCode === KEYS.UP)) {
-			EventUtil.trapEvent(event);
-			this.setState({ isOpen: true });
+	handleInputSubmit (event) {
+		// test if valid number
+		if (this.props.onInputSubmit
+			&& !isNaN(event.target.value)
+			&& Number(event.target.value) >= 1
+			&& Number(event.target.value) <= 31) {
+			this.props.onInputSubmit(event, {
+				selectedDayInMonth: {
+					day: Number(event.target.value)
+				}
+			});
 		}
+		// clear input
+		this.inputRef.value = '';
 	}
 
 	renderCalendar ({ labels }) {
-
 		return (
 			<CalendarWrapper
 				labels={labels}
@@ -386,8 +414,10 @@ class DayPicker extends React.Component {
 				initialFocusDayInMonth={this.props.initialFocusDayInMonth}
 				isIsoWeekday={this.props.isIsoWeekday}
 				onCalendarFocus={this.props.onCalendarFocus}
+				onCalendarSubmit={this.handleCalendarSubmit}
+				onCalendarCancel={this.props.onCalendarCancel}
 				onRequestClose={this.handleRequestClose}
-				onSelectDay={this.handleCalendarChange}
+				onSelectDay={this.handleSelectDay}
 				ref={() => {
 					// since it's inline, there is no callback except on render
 					if (this.props.isInline) {
@@ -395,6 +425,7 @@ class DayPicker extends React.Component {
 					}
 				}}
 				selectedDaysInMonth={this.props.selectedDaysInMonth}
+				selectedDaysInMonthFromCalendar={this.state.selectedDaysInMonthFromCalendar}
 				selectedDaysAndWeeks={this.props.selectedDaysAndWeeks}
 				selectedDayRef={(component) => { this.selectedDayCell = component; }}
 				variant={this.props.variant}
@@ -403,53 +434,13 @@ class DayPicker extends React.Component {
 	}
 
 	render () {
+		const props = this.props;
+
 		// Merge objects of strings with their default object
-		const labels = assign({}, defaultProps.labels, this.props.labels);
-		const assistiveText = assign({}, defaultProps.assistiveText, this.props.assistiveText);
+		const assistiveText = assign({}, defaultProps.assistiveText, props.assistiveText);
+		const labels = assign({}, defaultProps.labels, props.labels);
 
-		const clonedInputProps = {
-			disabled: (this.props.children && !!this.props.children.props.disabled) || this.props.disabled,
-			iconRight: (this.props.children && !!this.props.children.props.iconRight) || (<InputIcon
-				// Remove || for assistiveText at next breaking change
-				assistiveText={assistiveText.openCalendar}
-				aria-haspopup
-				aria-expanded={this.getIsOpen()}
-				category="utility"
-				name="event"
-				onClick={this.openDialog}
-			/>),
-			id: this.getId(),
-			inputRef: (component) => { this.inputRef = component; },
-			label: labels.label,
-			onBlur: (this.props.children && this.props.children.props.onBlur) || this.props.onBlur, // eslint-disable-line react/prop-types
-			onChange: this.handleInputChange,
-			onClick: () => {
-				this.openDialog();
-				if (this.props.children && this.props.children.props.onClick) {
-					this.props.children.props.onClick();
-				}
-			},
-			onFocus: (this.props.children && this.props.children.props.onFocus) || this.props.onFocus, // eslint-disable-line react/prop-types
-			onKeyDown: (this.props.children && this.props.children.props.onKeyDown) || this.handleKeyDown,
-			placeholder: (this.props.children && this.props.children.props.placeholder)
-				|| labels.placeholder,
-			required: (this.props.children && this.props.children.props.required) || this.props.required, // eslint-disable-line react/prop-types
-			value: (this.props.children && this.props.children.props.value)
-				|| this.props.formatter({
-					days: this.props.variant === 'daysInMonth' ? this.props.selectedDaysInMonth : this.props.selectedDaysAndWeeks,
-					labels,
-					variant: this.props.variant }
-
-				)
-		};
-
-		const clonedInput = this.props.children ? React.cloneElement(this.props.children, {
-			...clonedInputProps
-		})
-		: (<Input
-			{...clonedInputProps}
-		/>);
-
+		/* eslint-disable jsx-a11y/role-supports-aria-props */
 		return (
 			<div
 				className={classNames(
@@ -458,10 +449,57 @@ class DayPicker extends React.Component {
 					'ignore-react-onclickoutside', {
 						'slds-is-open': this.getIsOpen()
 					},
-					this.props.triggerClassName
+					props.triggerClassName
 				)}
 			>
-				{clonedInput}
+				<div className="slds-form-element__control">
+					<div className="slds-combobox_container slds-has-inline-listbox">
+						<ul id="listbox-unique-id" className="slds-listbox slds-listbox--inline" role="listbox" aria-orientation="horizontal" aria-label="Selected Options:">
+							{props.selectedDaysInMonth.length
+								? props.selectedDaysInMonth.map((item) =>
+									<li
+										role="presentation"
+										className="slds-listbox__item"
+										key={`${this.getId()}-list-item-${item.day}`}
+									>
+										<Pill
+											eventData={{ day: item.day }}
+											labels={{
+												label: item.day === -1
+													? this.props.labels.lastDay
+													: String(item.day)
+											}}
+										/>
+									</li>
+								)
+								: null}
+						</ul>
+						<div className="slds-combobox">
+							<InnerInput
+								aria-controls="listbox-unique-id"
+								className="slds-combobox__input"
+								containerClassName="slds-combobox__form-element"
+								disabled={props.disabled}
+								iconRight={<InputIcon
+									assistiveText={assistiveText.openCalendar}
+									aria-haspopup
+									aria-expanded={this.getIsOpen()}
+									category="utility"
+									name="event"
+									onClick={this.openDialog}
+								/>}
+								id={this.getId()}
+								placeholder={labels.placeholder}
+								onKeyDown={this.handleKeyDown}
+								inputRef={(component) => { this.inputRef = component; }}
+								
+								onClick={() => {
+									this.openDialog();
+								}}
+							/>
+						</div>
+					</div>
+				</div>
 				{this.props.isInline
 					? this.getInlineMenu({ calendarRenderer: this.renderCalendar({ labels }) })
 					: this.getDialog({ calendarRenderer: this.renderCalendar({ labels }) })}
@@ -469,6 +507,7 @@ class DayPicker extends React.Component {
 		);
 	}
 }
+/* eslint-enable jsx-a11y/role-supports-aria-props */
 
 DayPicker.displayName = DAY_PICKER;
 DayPicker.propTypes = propTypes;

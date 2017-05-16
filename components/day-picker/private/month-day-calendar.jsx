@@ -39,6 +39,7 @@ const DayPickerCalendar = React.createClass({
 			label: PropTypes.string,
 			months: PropTypes.array,
 			placeholder: PropTypes.string,
+			selectDaysInMonth: PropTypes.sting,
 			today: PropTypes.string,
 			weekDays: PropTypes.array
 		}),
@@ -53,7 +54,7 @@ const DayPickerCalendar = React.createClass({
 		/**
 		 * Triggered when the calendar is cancelled.
 		 */
-		onRequestClose: PropTypes.func.isRequired,
+		onRequestClose: PropTypes.func,
 		/**
 		 * Triggered when a date on the calendar is clicked.
 		 */
@@ -81,7 +82,11 @@ const DayPickerCalendar = React.createClass({
 	},
 
 	handleSelectDay (event, { day, selected }) {
-		this.setState({ selected: day });
+		this.setState({
+			selected: day,
+			focusedDay: day
+		});
+
 		this.props.onSelectDay(event, { day, selected });
 	},
 
@@ -179,7 +184,7 @@ const DayPickerCalendar = React.createClass({
 					focusedDay={this.state.focusedDay}
 					key={`${this.props.id}day-${day}`}
 					labels={this.props.labels}
-					selected={this.props.selectedDaysInMonth.some(isSelected)}
+					selected={this.props.selectedDaysInMonthFromCalendar.some(isSelected)}
 					selectedDayRef={this.props.selectedDayRef}
 				/>);
 			}
@@ -193,7 +198,7 @@ const DayPickerCalendar = React.createClass({
 				focusedDay={this.state.focusedDay}
 				key={`${this.props.id}day-last-day`}
 				labels={this.props.labels}
-				selected={this.props.selectedDaysInMonth.some((item) => item.day === -1)}
+				selected={this.props.selectedDaysInMonthFromCalendar.some((item) => item.day === -1)}
 				selectedDayRef={this.props.selectedDayRef}
 			/>);
 		}
