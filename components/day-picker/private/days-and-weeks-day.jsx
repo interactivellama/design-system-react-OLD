@@ -26,7 +26,7 @@ const handleKeyDown = (event, {
 	mapKeyEventCallbacks(event, {
 		callbacks: {
 			[KEYS.SPACE]: { callback: events.onSelectDay, data: { day, selected } },
-			[KEYS.ENTER]: { callback: events.onCalendarSubmit },
+			[KEYS.ENTER]: { callback: events.onSelectDay, data: { day, selected } },
 			[KEYS.LEFT]: { callback: events.onKeyboardNavigateToPreviousDay, data: { day } },
 			[KEYS.RIGHT]: { callback: events.onKeyboardNavigateToNextDay, data: { day } },
 			[KEYS.UP]: { callback: events.onKeyboardNavigateToPreviousWeek, data: { day } },
@@ -38,7 +38,7 @@ const handleKeyDown = (event, {
 	});
 };
 
-const DaypickerCalendarMonthDay = (props) => {
+const DaypickerCalendarDaysAndWeeks = (props) => {
 	return (
 		<td
 			aria-selected={props.selected}
@@ -79,28 +79,31 @@ const DaypickerCalendarMonthDay = (props) => {
 		>
 			<span
 				className={classNames(
-					'slds-day', {
-						'slds-daypicker--last-day': props.day === -1
-					}
+					'slds-day', 
+					'day-occurrence-picker__circle',
 				)}
 			>
-				{props.day === -1 ? props.labels.lastDay : props.day}
+				{props.labels.abbreviatedOrdinalWeeks[props.ordinalWeek]}
 			</span>
 		</td>
 	);
 };
 
-DaypickerCalendarMonthDay.displayName = 'SLDSDatepickerCalendarDay';
+DaypickerCalendarDaysAndWeeks.displayName = 'SLDSDatepickerCalendarDay';
 
-DaypickerCalendarMonthDay.propTypes = {
+DaypickerCalendarDaysAndWeeks.propTypes = {
 	/**
 	 * If elements within the calendar have focus. This is helpful for keyboard event trapping.
 	 */
 	calendarHasFocus: PropTypes.bool.isRequired,
 	/**
-	 * Date of day
+	 * Day of day
 	 */
 	day: PropTypes.number.isRequired,
+	/**
+	 * Week of day
+	 */
+	oridinalWeek: PropTypes.number.isRequired,
 	/**
 	 * onCalendarBlur: Triggered when the keyboard moves focus off the calendar.
 	 * onKeyboardNavigateToNextDay: For keyboard navigation. Changes the focus to the next day on the calendar. Triggered when right arrow button is pressed.
@@ -129,4 +132,4 @@ DaypickerCalendarMonthDay.propTypes = {
 	selectedDayRef: PropTypes.func.isRequired
 };
 
-export default DaypickerCalendarMonthDay;
+export default DaypickerCalendarDaysAndWeeks;

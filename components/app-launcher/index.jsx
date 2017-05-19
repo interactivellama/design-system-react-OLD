@@ -205,7 +205,7 @@ const AppLauncher = React.createClass({
 			<div className="slds-context-bar__item slds-no-hover" style={style}>
 				<div className="slds-context-bar__icon-action">
 					<a
-						href="javascript:void(0);" // eslint-disable-line no-script-url
+						href="" // eslint-disable-line no-script-url
 						aria-haspopup="true"
 						className="slds-icon-waffle_container slds-context-bar__button"
 						onClick={this.openAppLauncher}

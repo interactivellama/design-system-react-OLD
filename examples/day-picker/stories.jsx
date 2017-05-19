@@ -4,15 +4,10 @@ import { storiesOf, action } from '@kadira/storybook';
 import Datepicker from '~/components/date-picker';
 import { DAY_PICKER } from '../../utilities/constants';
 
-import Default from './default';
-import IsoWeekdays from './iso-weekday';
-import CustomInput from './custom-input';
-import SnaphotDefault from './snapshot-default';
+import DaysInMonth from './days-in-month';
+import DaysAndWeeks from './days-and-weeks';
 
 storiesOf(DAY_PICKER, module)
 	.addDecorator((getStory) => <div className="slds-p-around--medium">{getStory()}</div>)
-	.add('Default', () => (<Default action={action} />))
-	.add('ISO weekdays', () => (<IsoWeekdays action={action} />))
-	.add('Custom Input', () => (<CustomInput action={action} />))
-	.add('Inline menu', () => (<Datepicker isInline />))
-	.add('DOM Snapshot', () => (<SnaphotDefault />));
+	.add('Days In Month', () => (<DaysInMonth action={action} />))
+	.add('Days and Weeks', () => (<DaysAndWeeks action={action} />));

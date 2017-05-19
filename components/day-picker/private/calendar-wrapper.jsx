@@ -5,6 +5,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import MonthDayCalendar from './month-day-calendar';
+import DaysAndWeeksCalendar from './days-and-weeks-calendar';
 import Button from '../../../components/button';
 
 import EventUtil from '../../../utilities/event';
@@ -89,7 +90,7 @@ class DaypickerCalendarWrapper extends React.Component {
 		}
 	};
 
-	// done button
+	// done button - focus trap dialog
 	handleLastFocusableNodeKeyDown = (event) => {
 		if (!event.shiftKey && event.keyCode === KEYS.TAB) {
 			EventUtil.trapEvent(event);
@@ -105,6 +106,7 @@ class DaypickerCalendarWrapper extends React.Component {
 		}
 	};
 
+	// focus trap dialog
 	handleCalendarBlur = (event, { direction }) => {
 		if (direction === 'previous' && this.closeAndSaveRef) {
 			this.setState({ isCalendarFocused: false });
@@ -135,7 +137,10 @@ class DaypickerCalendarWrapper extends React.Component {
 	render () {
 		return (
 			<div // eslint-disable-line jsx-a11y/no-static-element-interactions
-				className={classNames('specific-date-picker__calendar-wrapper', this.props.className)}
+				className={classNames({
+					'specific-date-picker__calendar-wrapper': this.props.variant === 'daysInMonth',
+					'day-occurrence-picker__dropdown': this.props.variant === 'daysAndWeeks'
+				}, this.props.className)}
 				aria-hidden="false"
 				data-selection="single"
 				onKeyDown={this.handleKeyDown}
@@ -152,18 +157,29 @@ class DaypickerCalendarWrapper extends React.Component {
 					labels={this.props.labels}
 					initialFocusDayInMonth={this.props.initialFocusDayInMonth}
 					onCalendarBlur={this.handleCalendarBlur}
+					onCalendarSubmit={this.props.onCalendarSubmit}
 					onRequestInternalFocusDay={this.handleRequestInternalFocusDay}
 					onSelectDay={this.props.onSelectDay}
 					selectedDaysInMonth={this.props.selectedDaysInMonth}
 					selectedDaysInMonthFromCalendar={this.props.selectedDaysInMonthFromCalendar}
 					selectedDaysAndWeeks={this.props.selectedDaysAndWeeks}
 					selectedDayRef={this.props.selectedDayRef}
-					todayRef={(component) => {
-						this.todayRef = component;
-					}}
 					onLastFocusableNodeKeyDown={this.handleLastFocusableNodeKeyDown}
 				/>
-				: null}
+				: <DaysAndWeeksCalendar
+					id={this.props.id}
+					isIsoWeekday={this.props.isIsoWeekday}
+					labels={this.props.labels}
+					initialFocusDay={this.props.initialFocusDayInMonth}
+					onCalendarBlur={this.handleCalendarBlur}
+					onCalendarSubmit={this.props.onCalendarSubmit}
+					onRequestInternalFocusDay={this.handleRequestInternalFocusDay}
+					onSelectDay={this.props.onSelectDay}
+					selectedDays={this.props.selectedDaysInMonth}
+					selectedDaysFromCalendar={this.props.selectedDaysInMonthFromCalendar}
+					selectedDayRef={this.props.selectedDayRef}
+					onLastFocusableNodeKeyDown={this.handleLastFocusableNodeKeyDown}
+				/>}
 
 				<div className="specific-date-picker__done-button">
 					<Button

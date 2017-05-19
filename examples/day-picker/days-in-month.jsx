@@ -15,11 +15,10 @@ const Example = React.createClass({
 	},
 
 	handleCalendarSubmit (event, { selectedDaysInMonth }) {
-		this.setState({ selectedDaysInMonth: selectedDaysInMonth });
+		this.setState({ selectedDaysInMonth });
 	},
 
 	handleInputSubmit (event, { selectedDayInMonth }) {
-		console.log(selectedDayInMonth);
 		// de-duplicate
 		if (this.state.selectedDaysInMonth.every((item) =>
 				item.day !== selectedDayInMonth.day)) {
@@ -30,7 +29,7 @@ const Example = React.createClass({
 
 	render () {
 		return (
-			<div>
+			<div style={{ width: '200px' }}>
 				<DayPicker
 					selectedDaysInMonth={this.state.selectedDaysInMonth}
 					initialFocusDayInMonth={new Date().getDate()}

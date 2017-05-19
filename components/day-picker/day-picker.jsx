@@ -83,10 +83,6 @@ const propTypes = {
 	 *
 	 */
 	dayDisabled: PropTypes.func,
-	/**
-	 * Date formatting function. _Tested with snapshot testing._
-	 */
-	formatter: PropTypes.func,
 	/* Prevents the dropdown from changing position based on the viewport/window. If set to true your dropdowns can extend outside the viewport _and_ overflow outside of a scrolling parent. If this happens, you might want to consider making the dropdowns contents scrollable to fit the menu on the screen. _Not tested._
 	*/
 	hasStaticAlignment: PropTypes.bool,
@@ -177,26 +173,15 @@ const propTypes = {
 	 */
 	triggerClassName: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.string]),
 
-	variant: PropTypes.oneOf(['daysInMonth'])
+	variant: PropTypes.oneOf(['daysInMonth', 'weeksAndDays'])
 };
 
 const defaultProps = {
 	align: 'left',
 	assistiveText: {},
-	formatter ({ days, labels, variant }) {
-		let inputValue;
-		if (variant === 'daysInMonth') {
-			const items = days.map((item) => `${item.day}`);
-			inputValue = items.length ? items.sort((a, b) => a - b).join(', ') : '';
-		} else {
-			const items = days.map((item) => `${item.week}${item.day}`);
-			inputValue = items.length ? items.join(', ') : '';
-		}
-		return inputValue;
-	},
 	initialFocusDayInMonth: 1,
 	labels: {
-		abbreviatedWeekDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+		abbreviatedWeekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 		cancel: 'cancel',
 		closeAndSave: 'Done',
 		lastDay: 'Last Day',
@@ -214,9 +199,9 @@ const defaultProps = {
 			'November',
 			'December'
 		],
-		abbreviatedOrdinalWeek: ['1st', '2nd', '3rd', '4th'],
+		abbreviatedOrdinalWeeks: ['1st', '2nd', '3rd', '4th'],
 		// Last is supported by iCal RRULE, but is not included here
-		ordinalWeek: ['First', 'Second', 'Third', 'Fourth'],
+		ordinalWeeks: ['First', 'Second', 'Third', 'Fourth'],
 		placeholder: 'Pick day(s)',
 		selectDaysInMonth: 'Select day(s) of the month:',
 		weekDays: [
@@ -261,7 +246,8 @@ class DayPicker extends React.Component {
 
 		this.state = {
 			isOpen: false,
-			selectedDaysInMonthFromCalendar: []
+			selectedDaysInMonthFromCalendar: [],
+			selectedWeeksAndDayFromCalendar: []
 		};
 	}
 
@@ -301,7 +287,8 @@ class DayPicker extends React.Component {
 		} else {
 			this.setState({
 				isOpen: true,
-				selectedDaysInMonthFromCalendar: this.props.selectedDaysInMonth
+				selectedDaysInMonthFromCalendar: this.props.selectedDaysInMonth,
+				selectedWeeksAndDayFromCalendar: this.props.selectedDaysAndWeeks
 			});
 		}
 	}

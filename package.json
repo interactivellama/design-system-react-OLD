@@ -92,7 +92,7 @@
   },
   "devDependencies": {
     "@kadira/storybook": "^2.22.0",
-    "@salesforce-ux/design-system": "git+ssh://git@github.com/salesforce-ux/design-system-internal.git#v2.3.0-beta.2-dist",
+    "@salesforce-ux/design-system": "git+ssh://git@github.com/salesforce-ux/design-system-internal.git#v2.3.0-dist",
     "@salesforce-ux/icons": "^7.7.0",
     "async": "^2.0.0-rc.5",
     "babel": "^6.5.2",
@@ -140,7 +140,7 @@
     "lodash.trim": "^4.0.1",
     "minimist": "^1.2.0",
     "mocha": "^3.1.2",
-    "node-sass": "^4.5.0",
+    "node-sass": "^4.5.2",
     "object.entries": "^1.0.4",
     "phantomjs-prebuilt": "^2.1.7",
     "pre-commit": "^1.2.2",
@@ -150,6 +150,7 @@
     "react-dom": ">=15.4.1",
     "react-hot-loader": "^1.2.7",
     "react-test-renderer": "^15.4.1",
+    "sass-loader": "^6.0.3",
     "sinon": "^1.17.3",
     "sinon-chai": "^2.8.0",
     "string-replace-webpack-plugin": "^0.1.2",
@@ -160,7 +161,7 @@
     "xml2json": "^0.11.0"
   },
   "pre-commit": [
-    "lint-staged"
+
   ],
   "pre-push": [
     "validate",
@@ -410,6 +411,12 @@
       "status": "prod",
       "display-name": "Page Headers",
       "SLDS-component-path": "/components/page-headers"
+    },
+    {
+      "component": "scheduler",
+      "status": "prod",
+      "display-name": "Schedulers",
+      "SLDS-component-path": "/components/schedulers"
     },
     {
       "component": "tooltip",

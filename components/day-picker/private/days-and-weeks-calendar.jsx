@@ -5,7 +5,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import Day from './month-day';
+import Day from './days-and-weeks-day';
 
 // import DateUtil from '../../../utilities/date';
 
@@ -81,13 +81,13 @@ const DayPickerCalendar = React.createClass({
 		};
 	},
 
-	handleSelectDay (event, { day, selected, submit }) {
+	handleSelectDay (event, { day, selected }) {
 		this.setState({
 			selected: day,
 			focusedDay: day
 		});
 
-		this.props.onSelectDay(event, { day, selected, submit });
+		this.props.onSelectDay(event, { day, selected });
 	},
 
 	handleRequestClose () {
@@ -162,7 +162,6 @@ const DayPickerCalendar = React.createClass({
 
 		const events = {
 			onCalendarBlur: this.props.onCalendarBlur,
-			onCalendarSubmit: this.props.onCalendarSubmit,
 			onKeyboardNavigateToNextDay: this.handleKeyboardNavigateToNextDay,
 			onKeyboardNavigateToNextWeek: this.handleKeyboardNavigateToNextWeek,
 			onKeyboardNavigateToPreviousDay: this.handleKeyboardNavigateToPreviousDay,
@@ -174,38 +173,25 @@ const DayPickerCalendar = React.createClass({
 
 		const isSelected = (item) => item.day === day;
 
+		days.push(<td key={day}>{this.props.labels.abbreviatedOrdinalWeeks[weekNumber]}</td>);
+
 		for (let i = 0; i < 7; i++) {
 			day = (weekNumber * 7) + (i + 1);
-			
-			if (day <= maximunDaysInAMonth) {
-				days.push(<Day
-					calendarHasFocus={this.state.calendarHasFocus}
-					day={day}
-					events={events}
-					focusedDay={this.state.focusedDay}
-					key={`${this.props.id}day-${day}`}
-					labels={this.props.labels}
-					selected={this.props.selectedDaysInMonthFromCalendar.some(isSelected)}
-					selectedDayRef={this.props.selectedDayRef}
-				/>);
-			}
-		}
-
-		if (weekNumber === maximunWeeksInAMonth - 1) {
 			days.push(<Day
 				calendarHasFocus={this.state.calendarHasFocus}
-				day={-1}
+				day={day}
 				events={events}
 				focusedDay={this.state.focusedDay}
-				key={`${this.props.id}day-last-day`}
+				key={`${this.props.id}day-${day}`}
 				labels={this.props.labels}
-				selected={this.props.selectedDaysInMonthFromCalendar.some((item) => item.day === -1)}
+				ordinalWeek={weekNumber}
+				selected={this.props.selectedDaysFromCalendar.some(isSelected)}
 				selectedDayRef={this.props.selectedDayRef}
 			/>);
 		}
 
 		return (<tr
-			className="specific-date-picker__date-row"
+			className="day-occurrence-picker__occurrence-row"
 			key={`${this.props.id}-week-${weekNumber}`}
 		>{days}</tr>);
 	},
@@ -213,15 +199,46 @@ const DayPickerCalendar = React.createClass({
 	render () {
 		const weeks = [];
 
-		for (let i = 0; i < 5; i++) {
+		for (let i = 0; i < 4; i++) {
 			weeks.push(this.renderWeeks(i));
 		}
 
+		const sunday = (
+			<th>
+				<abbr title={this.props.labels.weekDays[0]}>{this.props.labels.abbreviatedWeekDays[0]}</abbr>
+			</th>
+		);
+
 		return (
 			<div
-				className="calendar"
+				className="calendar day-occurrence-picker"
 			>
 				<table className="datepicker__month" role="grid" aria-labelledby={`${this.props.id}-month`}>
+				<thead>
+					<tr>
+						<th />
+						{this.props.isIsoWeekday ? null : sunday}
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[1]}>{this.props.labels.abbreviatedWeekDays[1]}</abbr>
+						</th>
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[2]}>{this.props.labels.abbreviatedWeekDays[2]}</abbr>
+						</th>
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[3]}>{this.props.labels.abbreviatedWeekDays[3]}</abbr>
+						</th>
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[4]}>{this.props.labels.abbreviatedWeekDays[4]}</abbr>
+						</th>
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[5]}>{this.props.labels.abbreviatedWeekDays[5]}</abbr>
+						</th>
+						<th scope="col">
+							<abbr title={this.props.labels.weekDays[6]}>{this.props.labels.abbreviatedWeekDays[6]}</abbr>
+						</th>
+						{this.props.isIsoWeekday && sunday}
+					</tr>
+				</thead>
 					<tbody>
 						{weeks}
 					</tbody>
