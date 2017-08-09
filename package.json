@@ -1,6 +1,6 @@
 {
   "name": "design-system-react",
-  "version": "0.6.16",
+  "version": "0.6.17",
   "description": "Salesforce Lightning Design System for React",
   "license": "SEE LICENSE IN README.md",
   "engines": {
@@ -412,6 +412,12 @@
       "status": "prod",
       "display-name": "Page Headers",
       "SLDS-component-path": "/components/page-headers"
+    },
+    {
+      "component": "progress-indicator",
+      "status": "prod",
+      "display-name": "Progress Indicators",
+      "SLDS-component-path": "/components/progress-indicator"
     },
     {
       "component": "tooltip",
